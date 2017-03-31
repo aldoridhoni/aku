@@ -1,10 +1,11 @@
 import os
 import tempfile
-from profile.models import SSHKeys
 from subprocess import PIPE, Popen
 
 from django import forms
 from django.utils.translation import ugettext_lazy as _
+
+from .models.profile import SSHKeys
 
 attrs_dict = {'class': 'required'}
 

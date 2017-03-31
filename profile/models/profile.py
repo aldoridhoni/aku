@@ -3,10 +3,13 @@
 import datetime
 
 from django.contrib.auth.models import User
+from django.core.urlresolvers import reverse
 from django.db import models
+from django.utils.timezone import now
 from django.utils.translation import ugettext as _
 
-from auth.models import BaseProfile
+from .avatar import Avatar
+from .countries import CountryField
 
 GENDER_CHOICES = (
     ('F', _('Female')),
@@ -59,6 +62,38 @@ SINCE_CHOICES = (
     ('2010', '2010'),
     ('2011', '2011'), )
 
+STATUS_CHOICES = (
+    ('Y', _('Yes')),
+    ('N', _('No')), )
+
+
+class BaseProfile(models.Model):
+    """
+    User profile model
+    """
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    date = models.DateTimeField(auto_now_add=True)
+    country = CountryField(null=True, blank=True, default='ID')
+    latitude = models.DecimalField(
+        max_digits=10, decimal_places=6, blank=True, null=True)
+    longitude = models.DecimalField(
+        max_digits=10, decimal_places=6, blank=True, null=True)
+    location = models.CharField(max_length=255, blank=True)
+    status = models.CharField(
+        _('join survey?'), max_length=1, choices=STATUS_CHOICES, default='N')
+
+    class Meta:
+        abstract = True
+
+    def has_avatar(self):
+        return Avatar.objects.filter(user=self.user, valid=True).count()
+
+    def __unicode__(self):
+        return _("%s's profile") % self.user
+
+    def get_absolute_url(self):
+        return reverse("profile_public", args=[self.user])
+
 
 class Profile(BaseProfile):
     firstname = models.CharField(
@@ -72,7 +107,7 @@ class Profile(BaseProfile):
         blank=False,
         null=False)
     birthdate = models.DateField(
-        _('birthdate'), default=datetime.date.today(), blank=False, null=False)
+        _('birthdate'), default=datetime.date.today, blank=False, null=False)
     address = models.TextField(_('address'), blank=False, null=False)
     city = models.CharField(_('city'), max_length=255, blank=False, null=False)
     province = models.CharField(

@@ -1,99 +1,16 @@
-# Create your models here.
-"""
-Model configuration for Aku authentication
-"""
+from __future__ import unicode_literals
 
 import datetime
-import os.path
 
 from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
 from django.core.mail import send_mail
-from django.core.urlresolvers import reverse
 from django.db import models
 from django.template import Context, loader
 from django.utils.translation import ugettext as _
 
-from auth.countries import CountryField
 
-AVATAR_SIZES = (128, 96, 64, 48, 32, 24, 16)
-STATUS_CHOICES = (
-    ('Y', _('Yes')),
-    ('N', _('No')), )
-
-
-class BaseProfile(models.Model):
-    """
-    User profile model
-    """
-    user = models.ForeignKey(User, unique=True)
-    date = models.DateTimeField(default=datetime.datetime.now)
-    country = CountryField(null=True, blank=True, default='ID')
-    latitude = models.DecimalField(
-        max_digits=10, decimal_places=6, blank=True, null=True)
-    longitude = models.DecimalField(
-        max_digits=10, decimal_places=6, blank=True, null=True)
-    location = models.CharField(max_length=255, blank=True)
-    status = models.CharField(
-        _('join survey?'), max_length=1, choices=STATUS_CHOICES, default='N')
-
-    class Meta:
-        abstract = True
-
-    def has_avatar(self):
-        return Avatar.objects.filter(user=self.user, valid=True).count()
-
-    def __unicode__(self):
-        return _("%s's profile") % self.user
-
-    def get_absolute_url(self):
-        return reverse("profile_public", args=[self.user])
-
-
-class Avatar(models.Model):
-    """
-    Avatar model
-    """
-    image = models.ImageField(upload_to="avatars/%Y/%b/%d")
-    user = models.ForeignKey(User)
-    date = models.DateTimeField(auto_now_add=True)
-    valid = models.BooleanField()
-
-    class Meta:
-        unique_together = (('user', 'valid'), )
-
-    def __unicode__(self):
-        return _("%s's Avatar") % self.user
-
-    def delete(self):
-        base, filename = os.path.split(self.image.path)
-        name, extension = os.path.splitext(filename)
-        try:
-            for key in AVATAR_SIZES:
-                path = os.path.join(base, "%s.%s%s" % (name, key, extension))
-                if os.path.isfile(path):
-                    os.remove(path)
-            if os.path.isfile(self.image.path):
-                os.remove(self.image.path)
-        except:
-            pass
-        super(Avatar, self).delete()
-
-    def save(self):
-        for avatar in Avatar.objects.filter(
-                user=self.user, valid=self.valid).exclude(id=self.id):
-            base, filename = os.path.split(avatar.image.path)
-            name, extension = os.path.splitext(filename)
-            for key in AVATAR_SIZES:
-                try:
-                    os.remove(
-                        os.path.join(base, "%s.%s%s" % (name, key, extension)))
-                except:
-                    pass
-            avatar.delete()
-        super(Avatar, self).save()
-
-
+# Create your models here.
 class EmailValidationManager(models.Manager):
     """
     Email validation manager
